@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release (e.g. v2026.08.01)"
+        required: true
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag & manifest version
+        id: version
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          MANIFEST_VERSION="$(python3 -c "import json; print(json.load(open('manifest.json'))['version'])")"
+
+          if [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag version ($VERSION) != manifest.json version ($MANIFEST_VERSION). Bump manifest.json before tagging."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Catches the common mistake of editing a family YAML without
+      # refreshing its checksum in manifest.json.
+      - name: Verify family file checksums against manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import sys
+
+          manifest = json.load(open("manifest.json"))
+          ok = True
+          for filename, expected in manifest["families"].items():
+              expected_hash = expected.split(":", 1)[1]
+              path = f"families/{filename}"
+              try:
+                  with open(path, "rb") as f:
+                      actual_hash = hashlib.sha256(f.read()).hexdigest()
+              except FileNotFoundError:
+                  print(f"::error::{path} listed in manifest.json but missing on disk")
+                  ok = False
+                  continue
+              if actual_hash != expected_hash:
+                  print(f"::error::{path} checksum mismatch: manifest has {expected_hash}, actual is {actual_hash}")
+                  ok = False
+
+          if not ok:
+              sys.exit(1)
+          print("All family file checksums match manifest.json")
+          PY
+
+      - name: Package materials.zip
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          zip -r "dist/materials.zip" manifest.json families/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "hepic_database ${{ steps.version.outputs.version }}"
+          files: dist/materials.zip
+          draft: false
