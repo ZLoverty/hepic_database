@@ -42,37 +42,6 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      # Catches the common mistake of editing a family YAML without
-      # refreshing its checksum in manifest.json.
-      - name: Verify family file checksums against manifest
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import sys
-
-          manifest = json.load(open("manifest.json"))
-          ok = True
-          for filename, expected in manifest["families"].items():
-              expected_hash = expected.split(":", 1)[1]
-              path = f"families/{filename}"
-              try:
-                  with open(path, "rb") as f:
-                      actual_hash = hashlib.sha256(f.read()).hexdigest()
-              except FileNotFoundError:
-                  print(f"::error::{path} listed in manifest.json but missing on disk")
-                  ok = False
-                  continue
-              if actual_hash != expected_hash:
-                  print(f"::error::{path} checksum mismatch: manifest has {expected_hash}, actual is {actual_hash}")
-                  ok = False
-
-          if not ok:
-              sys.exit(1)
-          print("All family file checksums match manifest.json")
-          PY
-
       - name: Package materials.zip
         run: |
           set -euo pipefail

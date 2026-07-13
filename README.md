@@ -11,10 +11,11 @@
 ## 目录结构
 
 ```
-manifest.json          数据版本号 + 各 family 文件的 sha256 校验和
+manifest.json          数据版本号
 families/
   pla_family.yaml
   petg_family.yaml
+  asa_family.yaml
 ```
 
 `families/*.yaml` 的格式与 HEPiC 里 `HEPiC/database/material_database.py` 期望的完全一致
@@ -24,22 +25,21 @@ families/
 ## 发布新版本的流程
 
 1. 编辑/新增 `families/*.yaml`。
-2. 更新 `manifest.json`：
-   - 重新计算改动文件的 sha256（`shasum -a 256 families/xxx.yaml`）。
-   - 把 `version` 换成新的版本号（建议用日期，如 `2026.08.01`，同一天多次发布可加后缀 `.1`/`.2`）。
+2. 更新 `manifest.json` 的 `version`（建议用日期，如 `2026.08.01`，同一天多次发布可加后缀 `.1`/`.2`）。
 3. 提交，打 tag（**必须和 manifest.json 里的 `version` 一致，加 `v` 前缀**，如 `v2026.08.01`）并推送。
 4. `.github/workflows/release.yml` 会自动：
    - 校验 tag 版本号与 `manifest.json` 的 `version` 是否一致；
-   - 校验 `families/*.yaml` 的 sha256 是否和 `manifest.json` 里登记的一致（防止改了文件忘记更新 checksum）；
    - 把 `manifest.json` + `families/` 打包成 `materials.zip`，附加到对应的 GitHub Release 上。
 5. 两个消费端仓库（HEPiC、hepic_device）的代码都不需要改动。
 
 也可以在 Actions 页面用 `workflow_dispatch` 手动触发（输入同样格式的 tag）。
 
-## 消费端（待接入）
+下载完整性由 GitHub 自己保证：Releases API 会给每个 asset 返回 `digest`（sha256），消费端
+下载 `materials.zip` 后直接跟这个值比对，不需要我们在 `manifest.json` 里再手动维护一份逐文件
+checksum。
 
-目前 HEPiC / hepic_device 里的 `MaterialDatabase` 还是直接读取 HEPiC 包内置的
-`HEPiC/database/materials/` 快照（作为离线兜底数据）。后续会在 HEPiC 里加一个
-`materials_sync.py`，在应用/服务启动时请求本仓库最新 Release 的 `materials.zip`，对比其中
-`manifest.json` 的 `version` 与本地缓存的 `version`，不一致就下载覆盖本地缓存目录 —— 到那时
-这个仓库就会成为两端的唯一数据源头。
+## 消费端
+
+HEPiC（`HEPiC/database/materials_sync.py`）与 hepic_device 都已接入：应用/服务启动时请求本仓库
+最新 Release，对比 `manifest.json` 的 `version` 与本地缓存版本，不一致就下载 `materials.zip`
+（校验 GitHub 返回的 digest 后）覆盖本地缓存目录。网络异常时静默跳过，用本地缓存或内置快照兜底。
