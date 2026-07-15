@@ -8,8 +8,10 @@ _asa_base: &asa_default
   stability_threshold: 0.5
 
 # 2. 具体的材料条目直接继承模板，只需写“差异化”的参数
-A1001:
+AS300CF08:
   <<: *asa_default
-  PI_Code: "A1001"
-  excellent_force_range: [14.0, 22.0]
-  force_range: [12.0, 24.0]
+  PI_Code: "AS300CF08"
+  excellent_force_range: [9, 25]
+  force_range: [9, 25]
+  temperature: 270
+  speed: 6.7
