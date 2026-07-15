@@ -1,0 +1,13 @@
+# 1. 定义一个 PPS 的标准模板 (Base Template)
+_pps_base: &pps_default
+  name: "PPS"
+  excellent_force_range: [4.0, 11.0]
+  force_range: [4.0, 11.0]
+  temperature: 350
+  speed: 3.3
+  stability_threshold: 0.5
+
+# 2. 具体的材料条目直接继承模板，只需写“差异化”的参数
+PPS100CF10:
+  <<: *pps_default
+  PI_Code: "PPS100CF10"
