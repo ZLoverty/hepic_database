@@ -47,6 +47,7 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           zip -r "dist/materials.zip" manifest.json families/
+          sha256sum "dist/materials.zip" | awk '{print $1}' > "dist/materials.zip.sha256"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -67,3 +68,10 @@ jobs:
           pip install -q coscmd
           coscmd config -a "$COS_SECRET_ID" -s "$COS_SECRET_KEY" -b "$COS_BUCKET" -r "$COS_REGION"
           coscmd upload -y dist/materials.zip "/releases/${{ steps.version.outputs.tag }}/materials.zip"
+
+          # Stable "latest" pointer: consumers (HEPiC, hepic_device) read these three
+          # fixed URLs directly over public HTTPS as a fallback when GitHub is
+          # unreachable, so they can't ship COS credentials of their own.
+          coscmd upload -y manifest.json "/latest/manifest.json"
+          coscmd upload -y dist/materials.zip "/latest/materials.zip"
+          coscmd upload -y dist/materials.zip.sha256 "/latest/materials.zip.sha256"

@@ -29,7 +29,9 @@ families/
 3. 提交，打 tag（**必须和 manifest.json 里的 `version` 一致，加 `v` 前缀**，如 `v2026.08.01`）并推送。
 4. `.github/workflows/release.yml` 会自动：
    - 校验 tag 版本号与 `manifest.json` 的 `version` 是否一致；
-   - 把 `manifest.json` + `families/` 打包成 `materials.zip`，附加到对应的 GitHub Release 上。
+   - 把 `manifest.json` + `families/` 打包成 `materials.zip`，附加到对应的 GitHub Release 上；
+   - 把同一份 `materials.zip`（连同 `manifest.json`、`materials.zip.sha256`）镜像上传到腾讯云 COS 的
+     `/latest/` 路径（固定对象名，每次发布覆盖），供 GitHub 不可达时的消费端 fallback 使用。
 5. 两个消费端仓库（HEPiC、hepic_device）的代码都不需要改动。
 
 也可以在 Actions 页面用 `workflow_dispatch` 手动触发（输入同样格式的 tag）。
@@ -42,4 +44,9 @@ checksum。
 
 HEPiC（`HEPiC/database/materials_sync.py`）与 hepic_device 都已接入：应用/服务启动时请求本仓库
 最新 Release，对比 `manifest.json` 的 `version` 与本地缓存版本，不一致就下载 `materials.zip`
-（校验 GitHub 返回的 digest 后）覆盖本地缓存目录。网络异常时静默跳过，用本地缓存或内置快照兜底。
+（校验 GitHub 返回的 digest 后）覆盖本地缓存目录。
+
+若 GitHub 本身连不上（比如在中国大陆被墙），会自动 fallback 到腾讯云 COS 的镜像
+（`https://hepic-database-1456772252.cos.ap-guangzhou.myqcloud.com/latest/`），走同样的
+版本比对 + 下载 + sha256 校验流程。COS 只在 GitHub 不可达时才会被访问，不是并行的第二数据源。
+两条路径都网络异常时静默跳过，用本地缓存或内置快照兜底。
