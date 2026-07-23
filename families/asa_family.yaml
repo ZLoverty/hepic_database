@@ -15,3 +15,11 @@ AS300CF08:
   force_range: [9, 25]
   temperature: 270
   speed: 6.7
+  
+AS200:
+  <<: *asa_default
+  PI_Code: "AS200"
+  excellent_force_range: [10.0, 16.0]
+  force_range: [10.0, 16.0]
+  temperature: 250
+  speed: 4.6 

@@ -1,0 +1,15 @@
+# 1. 定义一个 PET 的标准模板 (Base Template)
+_pet_base: &pet_default
+  name: "PET"
+  excellent_force_range: [13.0, 27.0]
+  force_range: [13.0, 27.0]
+  temperature: 280
+  speed: 6.7
+  stability_threshold: 0.5
+
+# 2. 具体的材料条目直接继承模板，只需写“差异化”的参数
+E120GF15:
+  <<: *pet_default
+  PI_Code: "E120GF15"
+  excellent_force_range: [17.0, 23.0]
+  force_range: [17.0, 23.0]

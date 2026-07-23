@@ -20,3 +20,23 @@ L3002:
   excellent_force_range: [11.0, 19.0]
   force_range: [11.0, 19.0]
   speed: 5
+
+L2002:
+  <<: *pla_default
+  PI_Code: "L2002"
+  excellent_force_range: [14.0, 18.0]
+  force_range: [14.0, 18.0]
+  
+L1013:
+  <<: *pla_default
+  PI_Code: "L1013"
+  excellent_force_range: [16.0, 21.0]
+  force_range: [16.0, 21.0]
+  speed: 8.3
+    
+L4004:
+  <<: *pla_default
+  PI_Code: "L4004"
+  excellent_force_range: [16.0, 23.0]
+  force_range: [16.0, 23.0]
+  speed: 6.2
